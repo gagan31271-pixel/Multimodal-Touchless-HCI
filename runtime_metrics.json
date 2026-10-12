@@ -1,0 +1,15 @@
+{
+  "mode": "Hand Gesture",
+  "fps": 30.3,
+  "latency_ms": 27.0,
+  "inference_ms": 24.7,
+  "gesture": "none",
+  "gesture_counts": {
+    "none": 35,
+    "index_little": 27
+  },
+  "gesture_accuracy": {},
+  "context": "default",
+  "action": "none",
+  "updated_at": 1790918960.6846333
+}

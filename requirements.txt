@@ -1,0 +1,11 @@
+opencv-python
+mediapipe==0.10.21
+numpy
+pyautogui
+PyYAML
+streamlit>=1.51
+streamlit-webrtc>=0.47.1,<1
+psutil
+pygetwindow
+openai-whisper
+pywin32

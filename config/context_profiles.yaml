@@ -1,0 +1,108 @@
+profiles:
+
+  default:
+    description: "Default desktop profile"
+
+    window_keywords: []
+
+    gesture_mapping:
+      index_only: "cursor"
+      index_middle: "left_click"
+      index_middle_ring: "right_click"
+      index_little: "drag"
+      thumb_only: "scroll_up"
+      thumb_little: "scroll_down"
+      fist: "neutral"
+
+
+  browser:
+    description: "Web browser profile"
+
+    window_keywords:
+      - "Google Chrome"
+      - "Chrome"
+      - "Microsoft Edge"
+      - "Edge"
+      - "Mozilla Firefox"
+      - "Firefox"
+      - "Brave"
+      - "Opera"
+
+    gesture_mapping:
+      index_only: "cursor"
+      index_middle: "left_click"
+      index_middle_ring: "right_click"
+      index_little: "drag"
+      thumb_only: "scroll_up"
+      thumb_little: "scroll_down"
+      fist: "neutral"
+
+
+  presentation:
+    description: "Presentation profile"
+
+    window_keywords:
+      - "Microsoft PowerPoint"
+      - "PowerPoint"
+      - "LibreOffice Impress"
+      - "Impress"
+
+    gesture_mapping:
+      index_only: "cursor"
+
+      # Context-specific presentation actions.
+      index_middle: "next_slide"
+      index_middle_ring: "previous_slide"
+
+      index_little: "drag"
+
+      thumb_only: "next_slide"
+      thumb_little: "previous_slide"
+
+      fist: "neutral"
+
+
+  media_player:
+    description: "Media player profile"
+
+    window_keywords:
+      - "VLC media player"
+      - "VLC"
+      - "Windows Media Player"
+      - "Media Player"
+
+    gesture_mapping:
+      index_only: "cursor"
+
+      index_middle: "play_pause"
+      index_middle_ring: "mute"
+
+      index_little: "drag"
+
+      thumb_only: "volume_up"
+      thumb_little: "volume_down"
+
+      fist: "neutral"
+
+
+  coding:
+    description: "Software development profile"
+
+    window_keywords:
+      - "Visual Studio Code"
+      - "Visual Studio"
+      - "VS Code"
+      - "PyCharm"
+      - "IntelliJ IDEA"
+      - "Eclipse"
+      - "Android Studio"
+      - "Cursor"
+
+    gesture_mapping:
+      index_only: "cursor"
+      index_middle: "left_click"
+      index_middle_ring: "right_click"
+      index_little: "drag"
+      thumb_only: "scroll_up"
+      thumb_little: "scroll_down"
+      fist: "neutral"
