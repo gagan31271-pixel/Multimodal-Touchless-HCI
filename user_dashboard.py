@@ -1,8 +1,8 @@
-
 """Unified Streamlit dashboard for Multimodal Touchless HCI.
 
 Hand and Eye share one browser-owned WebRTC camera stream. MAX remains an
-independent voice process, and selecting any mode stops the previous mode.
+independent voice process. Screen AI is a separate shared feature and does not
+stop whichever interaction mode is active.
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ from modules.security.face_lock import render_face_lock
 ROOT = Path(__file__).resolve().parent
 METRICS_FILE = ROOT / "runtime_metrics.json"
 CAMERA_MODES = {"Hand Gesture", "Eye / Wink"}
-ALL_MODES = ["Hand Gesture", "Eye / Wink", "MAX / Voice", "Screen AI"]
+ALL_MODES = ["Hand Gesture", "Eye / Wink", "MAX / Voice"]
 
 
 def load_metrics() -> dict:
@@ -524,12 +524,12 @@ def start_mode(mode: str, ctx=None):
 
 st.subheader("Choose a mode")
 
-cols = st.columns(4)
+cols = st.columns(3)
 
 for column, mode, icon in zip(
     cols,
     ALL_MODES,
-    ["🖐️", "👁️", "🎙️", "🖥️"],
+    ["🖐️", "👁️", "🎙️"],
 ):
     with column:
         if st.button(
@@ -543,7 +543,6 @@ for column, mode, icon in zip(
             ),
         ):
             start_mode(mode)
-
 
 # ============================================================
 # ACTIVE MODE STATUS
@@ -669,233 +668,289 @@ elif active == "MAX / Voice":
 # SCREEN AI INTERFACE
 # ============================================================
 
-elif active == "Screen AI":
-    st.subheader("Screen AI")
+# Screen AI is a common feature and remains visible with any active mode.
+st.subheader("Screen AI · Common Feature")
+st.caption(
+    "Screen AI runs independently and can be used while Hand Gesture, "
+    "Eye / Wink, or MAX / Voice is active."
+)
 
-    st.write(
-        "Select a screen region first. The Read, Summarize, and Translate "
-        "actions will use only the text extracted from that selection."
-    )
+st.write(
+    "Select a screen region first. The Read, Summarize, and Translate "
+    "actions will use only the text extracted from that selection."
+)
 
-    # Keep selected OCR text between Streamlit reruns.
-    if "selected_screen_text" not in st.session_state:
-        st.session_state.selected_screen_text = ""
+# Keep selected OCR text between Streamlit reruns.
+if "selected_screen_text" not in st.session_state:
+    st.session_state.selected_screen_text = ""
 
-    if "screen_output" not in st.session_state:
-        st.session_state.screen_output = ""
+if "screen_output" not in st.session_state:
+    st.session_state.screen_output = ""
 
-    # --------------------------------------------------------
-    # SELECT SCREEN REGION
-    # --------------------------------------------------------
+if "screen_operation_status" not in st.session_state:
+    st.session_state.screen_operation_status = "Ready — select a region to begin."
+if "screen_operation_error" not in st.session_state:
+    st.session_state.screen_operation_error = False
 
-    if st.button(
-        "🎯 Select Screen Region",
-        use_container_width=True,
-        type="primary",
-    ):
-        service = None
+# --------------------------------------------------------
+# SELECT SCREEN REGION
+# --------------------------------------------------------
 
-        try:
-            from modules.multimodal.screen_service import ScreenService
+if st.button(
+    "🎯 Select Screen Region",
+    use_container_width=True,
+    type="primary",
+):
+    service = None
 
-            service = ScreenService()
-            selected_text_result = service.select_text()
+    try:
+        from modules.multimodal.screen_service import ScreenService
 
-            # select_text() can return OCR text or a dictionary.
-            if isinstance(selected_text_result, dict):
-                selected_text = str(
-                    selected_text_result.get("text", "") or ""
-                )
-            else:
-                selected_text = str(selected_text_result or "")
+        service = ScreenService()
+        selected_text_result = service.select_text()
 
-            if selected_text.strip():
-                selected_text = selected_text.strip()
+        # select_text() can return OCR text or a dictionary.
+        if isinstance(selected_text_result, dict):
+            selected_text = str(
+                selected_text_result.get("text", "") or ""
+            )
+        else:
+            selected_text = str(selected_text_result or "")
 
-                st.session_state.selected_screen_text = selected_text
-                st.session_state["screen_selected_text_preview"] = selected_text
-                st.session_state.screen_output = ""
+        if selected_text.strip():
+            selected_text = selected_text.strip()
 
-                st.success("Screen region selected and text extracted.")
+            st.session_state.selected_screen_text = selected_text
+            st.session_state["screen_selected_text_preview"] = selected_text
+            st.session_state.screen_output = ""
+            st.session_state.screen_operation_status = (
+                "Text extracted successfully. Choose Read, Summarize, or Translate."
+            )
+            st.session_state.screen_operation_error = False
 
-            else:
-                st.session_state.selected_screen_text = ""
-                st.session_state["screen_selected_text_preview"] = ""
-                st.session_state.screen_output = ""
+            st.success("Screen region selected and text extracted.")
 
-                st.warning(
-                    "No text was detected in that region. "
-                    "Please select a region containing readable text."
-                )
-
-        except Exception as exc:
+        else:
             st.session_state.selected_screen_text = ""
             st.session_state["screen_selected_text_preview"] = ""
+            st.session_state.screen_output = ""
+            st.session_state.screen_operation_status = (
+                "No text detected. Select a region containing readable text."
+            )
+            st.session_state.screen_operation_error = True
 
-            st.error(f"Screen selection error: {exc}")
+            st.warning(
+                "No text was detected in that region. "
+                "Please select a region containing readable text."
+            )
 
-        finally:
-            if service is not None:
+    except Exception as exc:
+        st.session_state.selected_screen_text = ""
+        st.session_state["screen_selected_text_preview"] = ""
+        st.session_state.screen_operation_status = f"Screen selection failed: {exc}"
+        st.session_state.screen_operation_error = True
+
+        st.error(f"Screen selection error: {exc}")
+
+    finally:
+        if service is not None:
+            try:
+                service.close()
+            except Exception:
+                pass
+
+# --------------------------------------------------------
+# DISPLAY EXTRACTED TEXT
+# --------------------------------------------------------
+
+if st.session_state.selected_screen_text:
+    st.markdown("**Extracted text from your selected region**")
+
+    st.text_area(
+        "Selected text preview",
+        value=st.session_state.selected_screen_text,
+        height=150,
+        disabled=True,
+        key="screen_selected_text_preview",
+    )
+
+    st.caption(
+        "Choose an action to process this exact extracted text. "
+        "Select another region any time to replace it."
+    )
+
+    c1, c2, c3 = st.columns(3)
+
+    actions = [
+        (c1, "📖 Read", "read"),
+        (c2, "📝 Summarize", "summarize"),
+        (c3, "🌐 Translate to Kannada", "translate"),
+    ]
+
+    # ----------------------------------------------------
+    # READ / SUMMARIZE / TRANSLATE
+    # ----------------------------------------------------
+
+    for column, label, operation in actions:
+        with column:
+            if st.button(
+                label,
+                use_container_width=True,
+                key=f"screen_action_{operation}",
+            ):
+                service = None
+
                 try:
-                    service.close()
-                except Exception:
-                    pass
+                    from modules.multimodal.screen_service import ScreenService
 
-    # --------------------------------------------------------
-    # DISPLAY EXTRACTED TEXT
-    # --------------------------------------------------------
+                    service = ScreenService()
 
-    if st.session_state.selected_screen_text:
-        st.markdown("**Extracted text from your selected region**")
+                    kwargs = {
+                        "text": st.session_state.selected_screen_text,
+                        "operation": operation,
+                        "speak": True,
+                    }
 
-        st.text_area(
-            "Selected text preview",
-            value=st.session_state.selected_screen_text,
-            height=150,
-            disabled=True,
-            key="screen_selected_text_preview",
-        )
+                    if operation == "translate":
+                        kwargs["target_language"] = "Kannada"
 
-        st.caption(
-            "Choose an action to process this exact extracted text. "
-            "Select another region any time to replace it."
-        )
+                    result = service.processor.process_text(**kwargs)
 
-        c1, c2, c3 = st.columns(3)
+                    # Extract readable text from the returned result.
+                    if isinstance(result, dict):
+                        preferred_keys = {
+                            "read": (
+                                "message",
+                                "result",
+                                "text",
+                                "output",
+                                "status",
+                            ),
+                            "summarize": (
+                                "summary",
+                                "result",
+                                "output",
+                                "text",
+                                "message",
+                            ),
+                            "translate": (
+                                "translation",
+                                "translated_text",
+                                "result",
+                                "output",
+                                "text",
+                                "message",
+                            ),
+                        }.get(
+                            operation,
+                            ("result", "output", "text", "message"),
+                        )
 
-        actions = [
-            (c1, "📖 Read", "read"),
-            (c2, "📝 Summarize", "summarize"),
-            (c3, "🌐 Translate to Kannada", "translate"),
-        ]
+                        display_result = ""
 
-        # ----------------------------------------------------
-        # READ / SUMMARIZE / TRANSLATE
-        # ----------------------------------------------------
+                        for key in preferred_keys:
+                            value = result.get(key)
 
-        for column, label, operation in actions:
-            with column:
-                if st.button(
-                    label,
-                    use_container_width=True,
-                    key=f"screen_action_{operation}",
-                ):
-                    service = None
+                            if isinstance(value, str) and value.strip():
+                                display_result = value.strip()
+                                break
 
-                    try:
-                        from modules.multimodal.screen_service import ScreenService
-
-                        service = ScreenService()
-
-                        kwargs = {
-                            "text": st.session_state.selected_screen_text,
-                            "operation": operation,
-                            "speak": True,
-                        }
-
-                        if operation == "translate":
-                            kwargs["target_language"] = "Kannada"
-
-                        result = service.processor.process_text(**kwargs)
-
-                        # Extract readable text from the returned result.
-                        if isinstance(result, dict):
-                            preferred_keys = {
-                                "read": (
-                                    "message",
-                                    "result",
-                                    "text",
-                                    "output",
-                                    "status",
-                                ),
-                                "summarize": (
-                                    "summary",
-                                    "result",
-                                    "output",
-                                    "text",
-                                    "message",
-                                ),
-                                "translate": (
-                                    "translation",
-                                    "translated_text",
-                                    "result",
-                                    "output",
-                                    "text",
-                                    "message",
-                                ),
-                            }.get(
-                                operation,
-                                ("result", "output", "text", "message"),
+                        if (
+                            not display_result
+                            and result.get("success") is False
+                        ):
+                            display_result = str(
+                                result.get("error")
+                                or result.get("message")
+                                or "The operation failed."
                             )
 
-                            display_result = ""
-
-                            for key in preferred_keys:
-                                value = result.get(key)
-
-                                if isinstance(value, str) and value.strip():
-                                    display_result = value.strip()
-                                    break
-
-                            if (
-                                not display_result
-                                and result.get("success") is False
-                            ):
-                                display_result = str(
-                                    result.get("error")
-                                    or result.get("message")
-                                    or "The operation failed."
-                                )
-
-                            if not display_result and operation == "read":
-                                display_result = (
-                                    "The selected text was sent to speech output."
-                                )
-
-                            if not display_result:
-                                display_result = (
-                                    "Operation completed, but no text result "
-                                    "was returned."
-                                )
-
-                        elif isinstance(result, str):
+                        if not display_result and operation == "read":
                             display_result = (
-                                result.strip()
-                                or "Operation completed, but no text result "
-                                "was returned."
+                                "The selected text was sent to speech output."
                             )
 
-                        else:
+                        if not display_result:
                             display_result = (
                                 "Operation completed, but no text result "
                                 "was returned."
                             )
 
-                        st.session_state.screen_output = display_result
+                    elif isinstance(result, str):
+                        display_result = (
+                            result.strip()
+                            or "Operation completed, but no text result "
+                            "was returned."
+                        )
 
-                    except Exception as exc:
-                        st.session_state.screen_output = f"Screen AI error: {exc}"
+                    else:
+                        display_result = (
+                            "Operation completed, but no text result "
+                            "was returned."
+                        )
 
-                    finally:
-                        if service is not None:
-                            try:
-                                service.close()
-                            except Exception:
-                                pass
+                    st.session_state.screen_output = display_result
+                    st.session_state.screen_operation_status = (
+                        f"{operation.title()} completed successfully."
+                    )
+                    st.session_state.screen_operation_error = False
 
-        st.text_area(
-            "Operation result",
-            key="screen_output",
-            height=170,
-        )
+                except Exception as exc:
+                    st.session_state.screen_output = ""
+                    st.session_state.screen_operation_status = (
+                        f"{operation.title()} failed: {exc}"
+                    )
+                    st.session_state.screen_operation_error = True
 
+                finally:
+                    if service is not None:
+                        try:
+                            service.close()
+                        except Exception:
+                            pass
+
+    if st.session_state.screen_operation_error:
+        st.error(st.session_state.screen_operation_status)
     else:
-        st.info(
-            "Click 'Select Screen Region' to capture a region and extract "
-            "its text. Read, Summarize, and Translate will appear after "
-            "text is detected."
-        )
+        st.info(st.session_state.screen_operation_status)
 
+    # Keep the operation result readable even though the text area is disabled.
+    st.markdown(
+        """
+        <style>
+        div[data-testid="stTextArea"] textarea:disabled {
+            color: #222222 !important;
+            -webkit-text-fill-color: #222222 !important;
+            opacity: 1 !important;
+        }
+
+        /*
+         * Streamlit may retain a second, disabled rendering of the action row
+         * after a rerun. Hide that whole row, not just its individual buttons.
+         * aria-disabled covers Streamlit versions that don't set :disabled.
+         */
+        div[data-testid="stHorizontalBlock"]:has(button:disabled),
+        div[data-testid="stHorizontalBlock"]:has(button[aria-disabled="true"]) {
+            display: none !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.text_area(
+        "Operation result",
+        key="screen_output",
+        height=190,
+        disabled=True,
+    )
+
+else:
+    st.info(
+        "Click 'Select Screen Region' to capture a region and extract "
+        "its text. Read, Summarize, and Translate will appear after "
+        "text is detected."
+    )
 
 # ============================================================
 # PERFORMANCE DASHBOARD

@@ -995,6 +995,9 @@ class MAX:
             "Normal MAX mode restored."
         )
 
+        # Confirm that voice typing has stopped.
+        self.speak("Typing mode stopped.")
+
     # =========================================================
     # START DICTATION
     # =========================================================

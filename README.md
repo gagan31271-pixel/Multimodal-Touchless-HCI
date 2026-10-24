@@ -1,279 +1,368 @@
-# Multimodal Touchless Human-Computer Interaction Engine
+Overview
 
-A multimodal human-computer interaction system designed to make computer control more natural and accessible using **hand gestures, eye movements, voice commands, and screen-aware AI**.
+The Multimodal Touchless Human-Computer Interaction Engine
+(Multimodal Touchless HCI) lets users interact with a computer through
+touch-free input methods. It provides separate interaction modes and a
+shared Screen AI feature for extracting, reading, translating, and
+summarizing on-screen text.
 
-The project combines computer vision, speech processing, and AI-powered screen analysis to provide alternative ways to interact with a computer without relying entirely on a traditional mouse and keyboard.
+The current application flow includes face authentication, a user
+dashboard, and the available interaction features. Screen AI is designed
+to remain accessible alongside the selected interaction mode.
 
-## Overview
+Key Features
 
-Traditional computer interaction primarily depends on physical input devices such as a mouse and keyboard. This project explores how multiple input modalities can work together to provide a more flexible, touchless interaction experience.
+1. Face Authentication
 
-The system integrates hand gesture recognition, eye and blink detection, voice commands, screen text extraction, and face-based authentication into a unified application.
+Uses face verification as an access gate before opening the
+dashboard.
 
-The application includes a Streamlit-based user dashboard for accessing its interaction features.
+Uses DeepFace with the FaceNet512 model for face matching.
 
-## Key Features
+Keeps face-authentication data in the local data/face_auth/
+directory.
 
-### 1. Hand Gesture Mouse Control
+Keep biometric data private; do not commit it to Git.
 
-* Detects hand landmarks using computer vision.
-* Interprets supported hand gestures for mouse interaction.
-* Supports gesture-based cursor movement and configured mouse actions.
-* Uses cursor smoothing to improve control stability.
+2. Hand Gesture Mouse
 
-### 2. Eye and Blink Interaction
+Gesture                         Action
 
-* Analyzes eye landmarks and blink-related movements.
-* Includes eye interaction functionality such as wink detection.
-* Provides an alternative interaction method using eye movements.
+Index finger                    Move cursor
+Index + middle fingers          Left click
+Index + middle + ring fingers   Right click
+Index + little finger           Drag
+Thumb                           Scroll up
+Thumb + little finger           Scroll down
+Fist                            Neutral / no action
 
-### 3. Voice Command System
+Cursor smoothing helps reduce sudden movement.
 
-* Supports configured voice commands for computer interaction.
-* Includes a speech-processing and dictation component.
-* Uses command-processing modules to connect recognized commands with application actions.
+3. Eye / Wink Control
 
-### 4. Screen AI and OCR
+Left-eye wink: left click.
 
-* Extracts visible text from screen content using OCR.
-* Provides screen-reading and context-related processing functionality.
-* Includes context-action functionality for interacting with extracted screen information.
+Right-eye wink: right click.
 
-### 5. Face-Based Authentication
+Closing both eyes should not trigger a mouse click.
 
-* Provides a face-registration and verification workflow.
-* Uses DeepFace for face verification.
-* Uses a registered face image and authentication configuration for the current prototype.
+Stability checks and a cooldown help reduce accidental repeated
+actions.
 
-**Security note:** This is a prototype authentication mechanism, not a replacement for operating-system authentication or production-grade security. Its security depends on the verification configuration and implementation.
+4. MAX Voice Assistant
 
-### 6. Unified Dashboard
+MAX supports voice-driven computer actions such as application launching
+and closing, browser searches, and other configured system commands.
 
-* Provides a central interface for accessing interaction features.
-* Organizes the system's different modules.
-* Includes performance-related telemetry and runtime monitoring functionality.
+Voice Typing / Dictation
 
-## Technology Stack
+The separate dictation engine uses Whisper for speech transcription and
+SoundDevice for microphone input. Recognized speech is typed into the
+active application.
 
-| Technology                  | Purpose                                    |
-| --------------------------- | ------------------------------------------ |
-| Python                      | Core application development               |
-| OpenCV                      | Image and video processing                 |
-| MediaPipe                   | Hand and facial landmark detection         |
-| DeepFace                    | Face verification                          |
-| Streamlit                   | Interactive dashboard                      |
-| OCR libraries               | Screen text extraction                     |
-| Speech-processing libraries | Voice interaction and dictation            |
-| PyAutoGUI                   | Computer input automation where configured |
-| NumPy                       | Numerical and image-data processing        |
+Supported controls: - Start typing --- starts voice typing and
+confirms that typing mode has started. - Stop typing --- stops voice
+typing and confirms that typing mode has stopped. - Pause typing ---
+temporarily pauses dictation. - Resume typing --- continues
+dictation. - New line / New paragraph --- inserts line breaks. -
+Delete that --- attempts to undo the previous dictated text.
 
-The exact dependencies are listed in `requirements.txt`.
+The dictation engine handles controls while it owns the microphone.
+MAX's regular command listener pauses during active dictation and
+resumes when dictation ends.
 
-## Project Structure
+5. Screen AI (Shared Feature)
 
-```text
+Screen AI can be used alongside the selected interaction mode: - Capture
+the screen or select a screen region. - Extract text using Tesseract OCR
+through pytesseract. - Read extracted text aloud using
+text-to-speech. - Translate selected text using the configured AI
+engine. - Summarize selected text using the configured AI engine. -
+Report OCR information such as word count and confidence where
+available.
+
+6. AI Processing
+
+The AI engine uses a provider fallback design: - Google Gemini is
+tried first for translation. - Ollama with a locally installed model
+can be used as a fallback. - Summarization and other configured
+text-generation tasks use the AI engine's supported provider workflow.
+
+Provider availability, network connectivity, API configuration, and the
+local Ollama model affect response time. Keep API credentials in
+environment variables and never commit them.
+
+7. Dashboard
+
+The Streamlit user dashboard provides the main interface for
+authentication, interaction modes, and shared Screen AI features.
+
+Technology Stack
+
+Language: Python 3.12
+
+Dashboard: Streamlit
+
+Computer vision: OpenCV, MediaPipe
+
+Face verification: DeepFace, FaceNet512
+
+Mouse and keyboard automation: PyAutoGUI
+
+Voice commands: SpeechRecognition
+
+Dictation / speech-to-text: OpenAI Whisper, SoundDevice
+
+Text-to-speech: pyttsx3 (where configured)
+
+OCR: Tesseract OCR, pytesseract
+
+AI processing: Google Gemini API, Ollama
+
+Numerical processing: NumPy
+
+Configuration / secrets: environment variables, python-dotenv
+(where configured)
+
+Project Structure
+
+The repository is organized into modules. Some files may differ as
+development continues.
+
 Multimodal-Touchless-HCI/
-├── config/
-│   └── context_profiles.yaml
+├── config/                         # Configuration files
 ├── data/
-│   └── face_auth/                 # Private local authentication data
-├── literature/
-│   ├── Papers/                    # Research papers
-│   ├── Final Project Synopsis.docx
-│   └── Synopsis.pdf
+│   └── face_auth/                  # Local face-authentication data (private)
+├── literature/                     # Literature survey and project references
 ├── modules/
-│   ├── context_switcher/
-│   ├── face_analysis/
-│   ├── hand_gesture/
+│   ├── ai_engine.py                # AI provider and text-processing logic
+│   ├── ai_screen_processor.py      # Screen AI processing workflow
+│   ├── context_switcher/            # Application-context support
+│   ├── face_analysis/               # Face and eye analysis
+│   ├── hand_gesture/                # Hand tracking and gesture control
 │   ├── multimodal/
-│   ├── ocr_screen/
-│   ├── security/
-│   ├── voice_command/
-│   ├── ai_engine.py
-│   ├── ai_screen_processor.py
-│   └── speech_engine.py
-├── tests/
-├── utils/
-│   └── telemetry.py
-├── .gitignore
-├── config.py
-├── dashboard.py
-├── main.py
-├── mode_runner.py
-├── requirements.txt
-└── user_dashboard.py
-```
+│   │   └── screen_service.py        # Shared screen interaction service
+│   ├── ocr_screen/                  # Screen capture and OCR
+│   ├── security/                    # Authentication-related components
+│   └── voice_command/
+│       ├── max.py                   # MAX voice assistant
+│       └── dictation_engine.py      # Whisper-based voice typing
+├── tests/                           # Tests
+├── utils/                           # Shared utilities
+├── mode_runner.py                   # Interaction mode runner
+├── user_dashboard.py                # User dashboard
+└── requirements.txt                 # Python dependencies
 
-The `data/face_auth/` directory is intended for private local authentication data and should not be committed to a public repository.
+Treat the actual files in your local checkout as the source of truth;
+the structure above is a guide to the main components.
 
-## Prerequisites
+Requirements
 
-Before running the application, make sure you have:
+Windows is the primary development environment.
 
-* Python 3.12, matching the development environment used for this project.
-* Git.
-* A webcam for hand, eye, and face-based features.
-* A microphone for voice interaction.
-* Windows or another environment compatible with the configured input and camera libraries.
+Python 3.12 is recommended.
 
-Some functionality may require additional operating-system permissions or configuration.
+A webcam for face authentication and camera-based interaction modes.
 
-## Installation
+A microphone for MAX and voice typing.
 
-### 1. Clone the repository
+Speakers or headphones for spoken feedback.
 
-```bash
+Internet access for Gemini API requests.
+
+Ollama installed locally if you want to use the local-model
+fallback.
+
+Tesseract OCR installed and available to pytesseract.
+
+External dependencies
+
+Tesseract OCR: Install the Tesseract OCR engine. If it is not
+detected automatically, configure its executable path in the
+project.
+
+Ollama: Install Ollama and download a model supported by your
+configuration. The configured model name must match the installed
+model.
+
+Gemini API: Create an API key and store it in the environment
+variable expected by your configuration. Never place the key
+directly in source code or commit it.
+
+Setup
+
+1. Clone the repository
+
 git clone https://github.com/gagan31271-pixel/Multimodal-Touchless-HCI.git
 cd Multimodal-Touchless-HCI
-```
 
-### 2. Create a virtual environment
+2. Create and activate a virtual environment
 
-On Windows:
+Windows PowerShell:
 
-```bash
-python -m venv venv
-```
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
 
-Activate it in Git Bash:
+Windows Command Prompt:
 
-```bash
-source venv/Scripts/activate
-```
+py -3.12 -m venv .venv
+.venv\Scripts\activate.bat
 
-Alternatively, activate it in Command Prompt:
+3. Install Python dependencies
 
-```cmd
-venv\Scripts\activate
-```
-
-### 3. Install dependencies
-
-Upgrade pip:
-
-```bash
 python -m pip install --upgrade pip
-```
-
-Install the project dependencies:
-
-```bash
 pip install -r requirements.txt
-```
 
-Some packages may require additional system libraries, hardware permissions, or platform-specific setup.
+If a dependency fails to install, confirm that the active interpreter is
+Python 3.12 and follow that dependency's platform-specific installation
+instructions.
 
-## Running the Application
+4. Configure environment variables
 
-### Main user dashboard
+If your project configuration uses python-dotenv, create a local
+.env file and add the Gemini key using the exact variable name
+expected by your code. For example:
 
-From the project root, activate the virtual environment and run:
+GEMINI_API_KEY=your_api_key_here
 
-```bash
+The variable name may differ in your checkout. Never commit .env or
+real API credentials.
+
+5. Prepare face authentication
+
+Follow the project's face-authentication workflow to enroll or configure
+an authorized face. Keep the resulting data in data/face_auth/ and
+verify that the directory is covered by .gitignore.
+
+6. Start the application
+
+From the project root, run:
+
 streamlit run user_dashboard.py
-```
 
-Streamlit should provide a local URL in the terminal. Open that URL in your browser.
+If your checkout uses a different launcher, use the launch command
+defined by that version of the project.
 
-### Alternative entry points
+How to Use
 
-The repository also contains:
+Start the Streamlit application.
 
-* `main.py` — main application entry point.
-* `dashboard.py` — performance dashboard.
-* `mode_runner.py` — interaction-mode execution support.
+Complete face authentication.
 
-Use the entry point appropriate to the functionality you want to test. The primary user interface is `user_dashboard.py`.
+Open the user dashboard.
 
-## Face Authentication
+Select the interaction mode:
 
-The project includes a face-based authentication workflow.
+Hand Gesture
 
-In the current implementation, authentication data is stored locally under:
+Eye / Wink
 
-```text
-data/face_auth/
-```
+MAX / Voice
 
-The directory may contain a registered face image and authentication configuration.
+Use Screen AI alongside the selected mode to select screen content
+and read, translate, or summarize extracted text.
 
-For privacy, this data is excluded from version control. A fresh clone therefore will not contain your locally registered face.
+For voice typing, focus the target application or text field before
+saying "Start typing." Say "Stop typing" when finished.
 
-If face authentication is enabled, complete the registration process locally before using the authentication-protected dashboard.
+Important: PyAutoGUI types into the currently focused application.
+Check the active window before dictating or issuing commands that
+control the mouse or keyboard.
 
-Do not upload biometric images, authentication data, API keys, or passwords to a public repository.
+Privacy and Security
 
-## Testing
+Do not commit .env files, API keys, credentials, or private
+face-authentication data.
 
-The `tests/` directory contains tests for selected application components, including:
+Keep data/face_auth/ local and verify that it is covered by
+.gitignore.
 
-* Face authentication.
-* Screen processing and OCR functionality.
-* Voice-command processing.
-* AI-related functionality.
-* Face and blink analysis.
+Screen captures and OCR text may contain private information. Review
+what is sent to external AI providers before using translation or
+summarization.
 
-Activate the virtual environment before running tests.
+Gemini requests require network access; local Ollama processing
+depends on the installed model and local system resources.
 
-To run the test suite with pytest, if pytest is installed:
+Test automation commands before using them in applications
+containing unsaved or sensitive work.
 
-```bash
-python -m pytest
-```
+Troubleshooting
 
-Individual tests can also be run when debugging a specific component.
+Camera is not detected
 
-## Research and Documentation
+Close other applications that may be using the webcam.
 
-The `literature/` directory contains project documentation and research material related to human-computer interaction, hand gesture recognition, multimodal interaction, and related topics.
+Check Windows camera permissions.
 
-These materials support the project's academic background and development.
+Confirm that the correct camera device is selected.
 
-## Current Scope and Limitations
+Microphone or voice typing does not work
 
-This project is an ongoing academic prototype. Its behavior depends on the implemented modules, hardware, environment, and configuration.
+Check Windows microphone permissions and the default recording
+device.
 
-Potential limitations include:
+Confirm that SoundDevice can access the microphone.
 
-* Accuracy may vary with lighting, camera quality, and user positioning.
-* Gesture and eye interaction may require calibration or practice.
-* Voice recognition may be affected by background noise and microphone quality.
-* OCR accuracy depends on screen content and text visibility.
-* Face authentication should not be treated as production-grade security.
-* Some modules may require additional platform-specific configuration.
+Allow the Whisper model to finish loading.
 
-## Future Enhancements
+Speak clearly and pause briefly so the engine can finish a speech
+segment.
 
-Possible future improvements include:
+If "Stop typing" is not detected, check the terminal output for the
+recognized transcript and dictation status messages.
 
-* More robust multimodal input coordination.
-* Improved gesture recognition and cursor stability.
-* Better handling of conflicting input modalities.
-* Expanded voice-command support.
-* More comprehensive accessibility features.
-* Improved authentication security and liveness detection.
-* Performance evaluation across different environments and users.
-* Automated testing and installation improvements.
+OCR returns little or no text
 
-## Privacy and Security
+Ensure Tesseract OCR is installed and discoverable.
 
-This project interacts with webcam, microphone, screen content, and computer input functionality.
+Select a region with readable text and adequate contrast.
 
-Users should understand which permissions are enabled before running it.
+Accuracy depends on resolution, font size, and image quality.
 
-Never commit the following to a public repository:
+Gemini translation is slow or unavailable
 
-* API keys or access tokens.
-* Passwords or private credentials.
-* Registered face images or biometric data.
-* Personal authentication configuration.
-* Private environment-variable files.
+Check network access and API-key configuration.
 
-Review `.gitignore` and inspect staged files before every commit.
+Provider limits, retries, timeouts, and model availability can
+affect latency.
 
+Confirm that the configured Ollama fallback model is installed and
+running if local fallback is enabled.
 
-Project: [Multimodal-Touchless-HCI](https://github.com/gagan31271-pixel/Multimodal-Touchless-HCI)
+PyAutoGUI types into the wrong window
 
----
+Click the intended application and place the cursor in the target
+text field before starting dictation.
 
-Developed as an academic project exploring multimodal, touchless human-computer interaction.
+Stop typing before switching to another task.
+
+Development Status
+
+The project brings together face authentication, the dashboard, hand
+gesture controls, eye/wink controls, MAX voice commands and dictation,
+OCR-based screen reading, and AI-assisted translation and summarization.
+
+The implementation continues to evolve. Features such as context-aware
+application profiles, additional facial-expression actions, and broad
+end-to-end validation should be considered complete only when verified
+in the current codebase.
+
+Contributing
+
+Create a feature branch.
+
+Keep changes focused on one module or feature.
+
+Test the relevant interaction mode and check that existing modes
+still work.
+
+Never commit API credentials, private face-authentication data, or
+personal screen captures.
+
+Document new dependencies and setup requirements.
+
+License
+
+Add a license file and update this section if you intend to distribute
+the project under a specific open-source license.

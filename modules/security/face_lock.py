@@ -188,7 +188,8 @@ def render_face_lock():
                 ):
                     with st.spinner(
                         "Starting camera verification. "
-                        "Follow the instructions in the camera window."
+                        "Keep only one face visible and blink twice, "
+                        "or press SPACE to capture."
                     ):
                         result = auth.verify_face()
 
@@ -285,8 +286,8 @@ def render_face_lock():
 
                 else:
                     with st.spinner(
-                        "Opening the camera. Look at the camera and press "
-                        "SPACE to capture your face, or Q to cancel."
+                        "Opening the camera. Keep only one face visible, then blink twice "
+                        "or press SPACE to capture. Press Q to cancel."
                     ):
                         result = auth.register_face(username.strip())
 
