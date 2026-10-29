@@ -462,6 +462,24 @@ st.markdown(
         padding: 12px 16px;
         border-radius: 12px;
     }
+
+    /* Keep the WebRTC camera component visible at a useful size. */
+    div[data-testid="stCustomComponentV1"] {
+        display: block !important;
+        width: 100% !important;
+        min-width: 320px;
+        min-height: 360px !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+
+    div[data-testid="stCustomComponentV1"] iframe {
+        display: block !important;
+        width: 100% !important;
+        min-height: 360px !important;
+        border: 0 !important;
+        visibility: visible !important;
+    }
     </style>
 
     <div class="hero">
@@ -573,17 +591,24 @@ with right:
 
 camera_active = active in CAMERA_MODES
 
+if camera_active:
+    st.subheader("Live Camera Preview")
+    st.caption(
+        "Keep this page open while using hand gestures or eye/wink controls. "
+        "Allow camera access in your browser if prompted."
+    )
+
 ctx = webrtc_streamer(
     key="hci-single-camera",
     video_processor_factory=lambda: DashboardVideoProcessor(
         active if camera_active else None
     ),
     media_stream_constraints={"video": True, "audio": False},
-    mode=WebRtcMode.SENDONLY,
+    mode=WebRtcMode.SENDRECV,
     desired_playing_state=camera_active,
     async_processing=True,
     sendback_audio=False,
-    video_html_attrs={"autoPlay": True, "controls": False},
+    video_html_attrs={"autoPlay": True, "controls": False, "playsInline": True, "muted": True},
 )
 
 processor = getattr(ctx, "video_processor", None)

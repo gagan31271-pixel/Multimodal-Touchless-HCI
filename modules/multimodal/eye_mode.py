@@ -201,11 +201,72 @@ class EyeMode:
         self.last_wink = wink
         self.last_action = action
         self.eye_status = "Face detected" if landmarks is not None else "No face detected"
-        cv2.rectangle(frame, (10, 10), (440, 72), (20, 20, 20), -1)
-        cv2.putText(frame, f"Eye Mode: {wink}", (20, 48),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.75, (255, 255, 255), 2)
-        return {"frame": frame, "wink": wink, "action": action,
-                "eye_status": self.eye_status, "detected": landmarks is not None}
+
+        # Draw a readable status panel directly on the live camera frame.
+        # The dashboard displays this returned, annotated frame through WebRTC.
+        panel_width = min(520, max(360, frame.shape[1] - 20))
+        cv2.rectangle(
+            frame,
+            (10, 10),
+            (panel_width, 116),
+            (20, 20, 20),
+            -1,
+        )
+
+        if landmarks is None:
+            wink_label = "Eye movement: Waiting for face"
+            action_label = "Action: None"
+        elif wink == "LEFT_WINK":
+            wink_label = "Eye movement: LEFT WINK"
+            action_label = "Action: LEFT CLICK"
+        elif wink == "RIGHT_WINK":
+            wink_label = "Eye movement: RIGHT WINK"
+            action_label = "Action: RIGHT CLICK"
+        elif wink == "ERROR":
+            wink_label = "Eye movement: Detection error"
+            action_label = f"Action: {action}"
+        else:
+            wink_label = "Eye movement: Neutral / normal blink"
+            action_label = f"Action: {action}"
+
+        cv2.putText(
+            frame,
+            f"Status: {self.eye_status}",
+            (20, 38),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.58,
+            (255, 255, 255),
+            2,
+            cv2.LINE_AA,
+        )
+        cv2.putText(
+            frame,
+            wink_label,
+            (20, 70),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.58,
+            (0, 255, 255),
+            2,
+            cv2.LINE_AA,
+        )
+        cv2.putText(
+            frame,
+            action_label[:58],
+            (20, 101),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.58,
+            (255, 255, 255),
+            2,
+            cv2.LINE_AA,
+        )
+
+        return {
+            "frame": frame,
+            "wink": wink,
+            "action": action,
+            "eye_status": self.eye_status,
+            "detected": landmarks is not None,
+        }
 
     def start(self) -> None:
 
@@ -352,22 +413,58 @@ class EyeMode:
                 # DISPLAY
                 # ------------------------------------------------
 
+                face_status = (
+                    "Face detected" if landmarks is not None else "No face detected"
+                )
+                if wink == "LEFT_WINK":
+                    action_status = "Action: LEFT CLICK"
+                    movement_status = "Eye movement: LEFT WINK"
+                elif wink == "RIGHT_WINK":
+                    action_status = "Action: RIGHT CLICK"
+                    movement_status = "Eye movement: RIGHT WINK"
+                elif wink == "ERROR":
+                    action_status = "Action: Detection error"
+                    movement_status = "Eye movement: ERROR"
+                else:
+                    action_status = "Action: None"
+                    movement_status = "Eye movement: Neutral / normal blink"
+
                 cv2.rectangle(
                     frame,
                     (10, 10),
-                    (390, 70),
+                    (min(520, max(360, frame.shape[1] - 20)), 116),
                     (20, 20, 20),
                     -1,
                 )
-
                 cv2.putText(
                     frame,
-                    f"Eye Mode: {wink}",
-                    (20, 48),
+                    f"Status: {face_status}",
+                    (20, 38),
                     cv2.FONT_HERSHEY_SIMPLEX,
-                    0.75,
+                    0.58,
                     (255, 255, 255),
                     2,
+                    cv2.LINE_AA,
+                )
+                cv2.putText(
+                    frame,
+                    movement_status,
+                    (20, 70),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.58,
+                    (0, 255, 255),
+                    2,
+                    cv2.LINE_AA,
+                )
+                cv2.putText(
+                    frame,
+                    action_status,
+                    (20, 101),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.58,
+                    (255, 255, 255),
+                    2,
+                    cv2.LINE_AA,
                 )
 
                 cv2.imshow(
